@@ -16,6 +16,9 @@ concurrency:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest # Use the latest Ubuntu runner
+    environment:
+        name: github-pages
+  
 
     # Grant permissions for the workflow to write to the repository (for gh-pages branch)
     # and manage GitHub Pages deployment settings
