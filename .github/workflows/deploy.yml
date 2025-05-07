@@ -1,66 +1,56 @@
 name: Deploy to GitHub Pages
-# Run work
-
-ow on pushes to the main branch
+# Run workflow on pushes to the main branch
 
 on:
-push:
-branches: [ main ] # Or your default branch (e.g., master)
-# Allows you to run this work
+  push:
+    branches: [ main ] # Or your default branch (e.g., master)
 
-ow manually from the Actions tab
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
 
-work
-ow_dispatch:
 # Allow one concurrent deployment, cancel runs in progress on new pushes
 concurrency:
-group: "pages"
+  group: "pages"
+  cancel-in-progress: true
 
-cancel-in-progress: true
 jobs:
-build-and-deploy:
-runs-on: ubuntu-latest # Use the latest Ubuntu runner
-# Grant permissions for the work
+  build-and-deploy:
+    runs-on: ubuntu-latest # Use the latest Ubuntu runner
 
-ow to write to the repository (for gh-pages branch)
+    # Grant permissions for the workflow to write to the repository (for gh-pages branch)
+    # and manage GitHub Pages deployment settings
+    permissions:
+      contents: write # Allow checkout and pushing to gh-pages branch
+      pages: write # Allow deployment to GitHub Pages
+      id-token: write # Allow authentication for deployment actions
 
-# and manage GitHub Pages deployment se
-ings
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4 # Checks out your repository code
 
-permissions:
-contents: write # Allow checkout and pushing to gh-pages branch
-pages: write # Allow deployment to GitHub Pages
-id-token: write # Allow authentication for deployment actions
-steps:
-- name: Checkout code
-uses: actions/checkout@v4 # Checks out your repository code
-- name: Set up Node.js
-uses: actions/setup-node@v4 # Sets up Node.js environment
-with:
-node-version: '18' # Specify your Node.js version
-cache: 'npm' # Cache npm dependencies for faster builds
-- name: Install dependencies
-run: npm ci # Use 'ci' for clean, reproducible installs in CI/CD
-- name: Build project
-run: npm run build # Assumes 'build' script in package.json runs Vite build
-# If base wasn't set in vite.con
+      - name: Set up Node.js
+        uses: actions/setup-node@v4 # Sets up Node.js environment
+        with:
+          node-version: '18' # Specify your Node.js version
+          cache: 'npm' # Cache npm dependencies for faster builds
 
-g.js, you could override it here:
-# run: npm run build -- --base=/your-repository-name/
-- name: Setup Pages
-uses: actions/con
+      - name: Install dependencies
+        run: npm ci # Use 'ci' for clean, reproducible installs in CI/CD
 
-gure-pages@v5 # Con
+      - name: Build project
+        run: npm run build # Assumes 'build' script in package.json runs Vite build
+        # If base wasn't set in vite.config.js, you could override it here:
+        # run: npm run build -- --base=/your-repository-name/
 
-gures GitHub Pages se
-ings
+      - name: Setup Pages
+        uses: actions/configure-pages@v5 # Configures GitHub Pages settings
 
-- name: Upload artifact
-uses: actions/upload-pages-artifact@v3 # Uploads the build output (dist)
-with:
-# Upload build directory
-path: './dist' # Make sure this matches your Vite output directory
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3 # Uploads the build output (dist)
+        with:
+          # Upload build directory
+          path: './dist' # Make sure this matches your Vite output directory
 
-- name: Deploy to GitHub Pages
-id: deployment
-uses: actions/deploy-pages@v4 # Deploys the uploaded artifact to GitHub Pages
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4 # Deploys the uploaded artifact to GitHub Pages
