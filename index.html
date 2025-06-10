@@ -3,10 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Three.js App in Codespaces</title>
-  <script type="module" crossorigin src="/sts-practice/assets/index-ClQLpiuT.js"></script>
-  <link rel="stylesheet" crossorigin href="/sts-practice/assets/index-GcLpzYOY.css">
+    <title>3D Gas Diffusion Simulation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+        #simulationContainer canvas { display: block; }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js",
+        "three/examples/jsm/controls/OrbitControls.js": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/controls/OrbitControls.js"
+      }
+    }
+    </script>
+  <script type="module" crossorigin src="/sts-practice/assets/index-uZuvAyQO.js"></script>
 </head>
-<body> 
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="container mx-auto p-4 sm:p-6 max-w-6xl">
+        <header class="mb-6 sm:mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-center text-sky-700">3D Two-Gas Diffusion Simulation</h1>
+            <p class="text-center text-gray-600 mt-2">Configure two gases, then start the simulation to watch them diffuse.</p>
+        </header>
+
+        <div class="grid lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-1 bg-white p-5 sm:p-6 rounded-xl shadow-lg border border-gray-200">
+                <h2 class="text-xl sm:text-2xl font-semibold mb-5 text-sky-600 border-b pb-3">Controls</h2>
+                
+                <div class="mb-6 p-4 border border-red-300 rounded-lg bg-red-50/50">
+                    <h3 class="text-lg font-semibold text-red-600 mb-3">Gas A (Red)</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="particleCountA" class="block text-sm font-medium text-gray-700 mb-1">Particle Count: <span id="particleCountAValue" class="font-semibold text-red-600">50</span></label>
+                            <input type="range" id="particleCountA" min="10" max="250" value="50" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-red-500">
+                        </div>
+                        <div>
+                            <label for="temperatureA" class="block text-sm font-medium text-gray-700 mb-1">Temperature: <span id="temperatureAValue" class="font-semibold text-red-600">50</span></label>
+                            <input type="range" id="temperatureA" min="1" max="100" value="50" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-red-500">
+                        </div>
+                        <div>
+                            <label for="particleMassA" class="block text-sm font-medium text-gray-700 mb-1">Particle Mass: <span id="particleMassAValue" class="font-semibold text-red-600">10</span></label>
+                            <input type="range" id="particleMassA" min="1" max="100" value="10" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-red-500">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-6 p-4 border border-blue-300 rounded-lg bg-blue-50/50">
+                    <h3 class="text-lg font-semibold text-blue-600 mb-3">Gas B (Blue)</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="particleCountB" class="block text-sm font-medium text-gray-700 mb-1">Particle Count: <span id="particleCountBValue" class="font-semibold text-blue-600">50</span></label>
+                            <input type="range" id="particleCountB" min="10" max="250" value="50" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500">
+                        </div>
+                        <div>
+                            <label for="temperatureB" class="block text-sm font-medium text-gray-700 mb-1">Temperature: <span id="temperatureBValue" class="font-semibold text-blue-600">50</span></label>
+                            <input type="range" id="temperatureB" min="1" max="100" value="50" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500">
+                        </div>
+                        <div>
+                            <label for="particleMassB" class="block text-sm font-medium text-gray-700 mb-1">Particle Mass: <span id="particleMassBValue" class="font-semibold text-blue-600">20</span></label>
+                            <input type="range" id="particleMassB" min="1" max="100" value="20" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500">
+                        </div>
+                    </div>
+                </div>
+                
+                <button id="resetButton" class="w-full mt-4 bg-sky-500 hover:bg-sky-600 text-white font-semibold py-2.5 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-opacity-75">
+                    Apply Settings & Reset
+                </button>
+                <button id="startButton" class="w-full mt-3 bg-green-500 hover:bg-green-600 text-white font-semibold py-2.5 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-75" disabled>
+                    Start Simulation
+                </button>
+            </div>
+
+            <div id="simulationContainerWrapper" class="lg:col-span-2 bg-gray-800 rounded-xl shadow-xl border border-gray-700 overflow-hidden h-[400px] sm:h-[500px] lg:h-[650px] flex items-center justify-center">
+                 <div id="simulationContainer" class="w-full h-full"></div>
+            </div>
+        </div>
+         <p class="text-sm text-gray-500 text-center mt-6">
+            Use mouse controls: Left-click & drag to <span class="font-semibold">rotate</span>. Scroll wheel to <span class="font-semibold">zoom</span>. Right-click & drag to <span class="font-semibold">pan</span>.
+        </p>
+    </div>
+
 </body>
 </html>
