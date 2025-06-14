@@ -1,8 +1,4 @@
-# sts-practice
-practice for the science talent search
+# science-talent-search-project-2025
+My entry for the 2025 Science Talent Search.
 
-Commands:
-npm init
-npm install
-npm install three
-npm run dev
+This is a 3D simulation on gas diffusion.
