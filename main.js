@@ -28,11 +28,14 @@ import * as THREE from 'three';
 
         const BOX_SIZE = 10;
         const BOX_HALF_SIZE = BOX_SIZE / 2;
-        const PARTICLE_RADIUS = 0.05;
+        const FACTOR_A = 0.05 / Math.cbrt(10);
+        const FACTOR_B = 0.05 / Math.cbrt(20);
+        const PARTICLE_RADIUS_A = Math.cbrt(particleMassASlider.value) * FACTOR_A;
+        const PARTICLE_RADIUS_B = Math.cbrt(particleMassBSlider.value) * FACTOR_B;
         const VELOCITY_SCALING_CONSTANT = 0.05;
         const SIMULATION_SPEED_MULTIPLIER = 5;
 
-        let particleGeometry; // Reusable geometry
+        let particleGeometryA, particleGeometryB; // Reusable geometry
         let particleMaterialA, particleMaterialB; // Materials for each gas type
 
         function init() {
@@ -68,7 +71,8 @@ import * as THREE from 'three';
             scene.add(wireframeBox);
 
             // Particle Geometries and Materials
-            particleGeometry = new THREE.SphereGeometry(PARTICLE_RADIUS, 10, 8);
+            particleGeometryA = new THREE.SphereGeometry(PARTICLE_RADIUS_A, 10, 8);
+            particleGeometryB = new THREE.SphereGeometry(PARTICLE_RADIUS_B);
             particleMaterialA = new THREE.MeshStandardMaterial({ color: 0xff0000, roughness: 0.4, metalness: 0.2 }); // Red
             particleMaterialB = new THREE.MeshStandardMaterial({ color: 0x0000ff, roughness: 0.4, metalness: 0.2 }); // Blue
 
@@ -112,10 +116,17 @@ import * as THREE from 'three';
             startButton.classList.remove('opacity-50', 'cursor-not-allowed');
             startButton.classList.add('hover:bg-green-600');
 
-
             // Clear existing particles
             particles.forEach(p => scene.remove(p.mesh));
             particles = [];
+
+            // Recalculate radii and recreate geometries
+            const massA = Math.max(0.1, parseFloat(particleMassASlider.value));
+            const massB = Math.max(0.1, parseFloat(particleMassBSlider.value));
+            window.PARTICLE_RADIUS_A = Math.cbrt(massA) * 0.1;
+            window.PARTICLE_RADIUS_B = Math.cbrt(massB) * 0.1;
+            particleGeometryA = new THREE.SphereGeometry(window.PARTICLE_RADIUS_A, 10, 8);
+            particleGeometryB = new THREE.SphereGeometry(window.PARTICLE_RADIUS_B);
 
             // Add dividing wall if not already present (or make visible)
             if (!scene.children.includes(dividingWall)) {
@@ -127,33 +138,34 @@ import * as THREE from 'three';
             createParticlesForGas(
                 parseInt(particleCountASlider.value),
                 parseFloat(temperatureASlider.value),
-                Math.max(0.1, parseFloat(particleMassASlider.value)),
+                massA,
                 particleMaterialA,
-                'A' // type
+                'A'
             );
             // Create Gas B particles
             createParticlesForGas(
                 parseInt(particleCountBSlider.value),
                 parseFloat(temperatureBSlider.value),
-                Math.max(0.1, parseFloat(particleMassBSlider.value)),
+                massB,
                 particleMaterialB,
-                'B' // type
+                'B'
             );
         }
 
         function createParticlesForGas(count, temperature, mass, material, type) {
             for (let i = 0; i < count; i++) {
-                const particleMesh = new THREE.Mesh(particleGeometry, material);
+                const geometry = type === 'A' ? particleGeometryA : particleGeometryB;
+                const particleMesh = new THREE.Mesh(geometry, material);
                 
                 // Initial position based on type
                 let xPos;
                 if (type === 'A') { // Gas A in negative X half
-                    xPos = (Math.random() * BOX_HALF_SIZE * 0.9) - (BOX_HALF_SIZE * 0.95) + PARTICLE_RADIUS; 
+                    xPos = (Math.random() * BOX_HALF_SIZE * 0.9) - (BOX_HALF_SIZE * 0.95) + PARTICLE_RADIUS_A; 
                 } else { // Gas B in positive X half
-                    xPos = (Math.random() * BOX_HALF_SIZE * 0.9) + (BOX_HALF_SIZE * 0.05) - PARTICLE_RADIUS;
+                    xPos = (Math.random() * BOX_HALF_SIZE * 0.9) + (BOX_HALF_SIZE * 0.05) - PARTICLE_RADIUS_B;
                 }
                 // Ensure particles are not spawned exactly on the wall edge
-                xPos = Math.max(-BOX_HALF_SIZE + PARTICLE_RADIUS * 2, Math.min(BOX_HALF_SIZE - PARTICLE_RADIUS * 2, xPos));
+                xPos = Math.max(-BOX_HALF_SIZE + Math.max(PARTICLE_RADIUS_A, PARTICLE_RADIUS_B) * 2, Math.min(BOX_HALF_SIZE - Math.min(PARTICLE_RADIUS_A, PARTICLE_RADIUS_B) * 2, xPos));
 
 
                 particleMesh.position.set(
@@ -190,19 +202,21 @@ import * as THREE from 'three';
                 particles.forEach(p => {
                     p.mesh.position.add(p.velocity.clone().multiplyScalar(deltaTime * SIMULATION_SPEED_MULTIPLIER));
 
-                    // Boundary collision checks
-                    if (Math.abs(p.mesh.position.x) > BOX_HALF_SIZE - PARTICLE_RADIUS) {
-                        p.mesh.position.x = Math.sign(p.mesh.position.x) * (BOX_HALF_SIZE - PARTICLE_RADIUS);
+                     // Use correct radius for each particle type
+                    const radius = p.type === 'A' ? PARTICLE_RADIUS_A : PARTICLE_RADIUS_B;
+
+                    if (Math.abs(p.mesh.position.x) > BOX_HALF_SIZE - radius) {
+                        p.mesh.position.x = Math.sign(p.mesh.position.x) * (BOX_HALF_SIZE - radius);
                         p.velocity.x *= -1;
                     }
-                    if (Math.abs(p.mesh.position.y) > BOX_HALF_SIZE - PARTICLE_RADIUS) {
-                        p.mesh.position.y = Math.sign(p.mesh.position.y) * (BOX_HALF_SIZE - PARTICLE_RADIUS);
+                    if (Math.abs(p.mesh.position.y) > BOX_HALF_SIZE - radius) {
+                        p.mesh.position.y = Math.sign(p.mesh.position.y) * (BOX_HALF_SIZE - radius);
                         p.velocity.y *= -1;
                     }
-                    if (Math.abs(p.mesh.position.z) > BOX_HALF_SIZE - PARTICLE_RADIUS) {
-                        p.mesh.position.z = Math.sign(p.mesh.position.z) * (BOX_HALF_SIZE - PARTICLE_RADIUS);
+                    if (Math.abs(p.mesh.position.z) > BOX_HALF_SIZE - radius) {
+                        p.mesh.position.z = Math.sign(p.mesh.position.z) * (BOX_HALF_SIZE - radius);
                         p.velocity.z *= -1;
-                    }
+                        }
                 });
             }
 
