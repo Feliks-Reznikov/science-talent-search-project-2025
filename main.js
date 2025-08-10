@@ -199,11 +199,10 @@ import * as THREE from 'three';
             const deltaTime = clock.getDelta();
 
             if (simulationRunning) {
+                // Move particles
                 particles.forEach(p => {
                     p.mesh.position.add(p.velocity.clone().multiplyScalar(deltaTime * SIMULATION_SPEED_MULTIPLIER));
-
-                     // Use correct radius for each particle type
-                    const radius = p.type === 'A' ? PARTICLE_RADIUS_A : PARTICLE_RADIUS_B;
+                    const radius = p.type === 'A' ? window.PARTICLE_RADIUS_A : window.PARTICLE_RADIUS_B;
 
                     if (Math.abs(p.mesh.position.x) > BOX_HALF_SIZE - radius) {
                         p.mesh.position.x = Math.sign(p.mesh.position.x) * (BOX_HALF_SIZE - radius);
@@ -216,13 +215,56 @@ import * as THREE from 'three';
                     if (Math.abs(p.mesh.position.z) > BOX_HALF_SIZE - radius) {
                         p.mesh.position.z = Math.sign(p.mesh.position.z) * (BOX_HALF_SIZE - radius);
                         p.velocity.z *= -1;
-                        }
+                    }
                 });
+
+                // Particle-particle collisions
+                for (let i = 0; i < particles.length; i++) {
+                    for (let j = i + 1; j < particles.length; j++) {
+                        const a = particles[i];
+                        const b = particles[j];
+                        const posA = a.mesh.position;
+                        const posB = b.mesh.position;
+                        const rA = a.type === 'A' ? window.PARTICLE_RADIUS_A : window.PARTICLE_RADIUS_B;
+                        const rB = b.type === 'A' ? window.PARTICLE_RADIUS_A : window.PARTICLE_RADIUS_B;
+                        const minDist = rA + rB;
+
+                        const delta = new THREE.Vector3().subVectors(posB, posA);
+                        const dist = delta.length();
+
+                        if (dist < minDist && dist > 0) {
+                            // Move particles apart to prevent overlapping
+                            const overlap = minDist - dist;
+                            const correction = delta.clone().normalize().multiplyScalar(overlap / 2);
+                            posA.addScaledVector(correction, -1);
+                            posB.add(correction);
+
+                            // Elastic collision for different masses
+                            const vA = a.velocity;
+                            const vB = b.velocity;
+                            const mA = a.type === 'A' ? parseFloat(particleMassASlider.value) : parseFloat(particleMassBSlider.value);
+                            const mB = b.type === 'A' ? parseFloat(particleMassASlider.value) : parseFloat(particleMassBSlider.value);
+
+                            // Normal vector
+                            const n = delta.clone().normalize();
+                            // Relative velocity along the normal
+                            const vRel = vA.clone().sub(vB);
+                            const vRelNorm = vRel.dot(n);
+
+                            if (vRelNorm < 0) { // Only resolve if moving towards each other
+                                // 1D elastic collision equations along the normal direction
+                                const impulse = (2 * vRelNorm) / (mA + mB);
+                                vA.addScaledVector(n, -impulse * mB);
+                                vB.addScaledVector(n, impulse * mA);
+                            }
+                        }
+                    }
+                }
             }
 
             orbitControls.update();
             renderer.render(scene, camera);
-        }
+        }   
 
         function onWindowResize() {
             if (!camera || !renderer || !simulationContainer) return;
